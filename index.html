@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipes - What to cook today?</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="logo">
+                    <h1>🍳 Recipes</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="active">Home</a></li>
+                    <li><a href="#recipes">Recipes</a></li>
+                    <li><a href="add-recipe.html">Add Recipe</a></li>
+                    <li><a href="#about">About</a></li>
+                </ul>
+                <div class="auth-buttons">
+                    <button class="btn btn-secondary" id="loginBtn">Login</button>
+                    <button class="btn btn-primary" id="registerBtn">Register</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h2 class="hero-title">Don't know what to cook?</h2>
+                <p class="hero-subtitle">Click the button and get a random recipe!</p>
+                <button class="btn btn-large btn-random" id="randomRecipeBtn">
+                    🎲 What to cook today?
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="random-recipe-section" id="randomRecipeDisplay" style="display: none;">
+        <div class="container">
+            <div class="random-recipe-card">
+                <button class="close-btn" id="closeRandomRecipe">&times;</button>
+                <div class="random-recipe-content">
+                    <img src="" alt="Recipe" class="random-recipe-image" id="randomRecipeImage">
+                    <div class="random-recipe-info">
+                        <h3 id="randomRecipeTitle">Recipe Title</h3>
+                        <p id="randomRecipeDescription">Recipe Description</p>
+                        <div class="random-recipe-meta">
+                            <span class="meta-item">⏱️ <span id="randomRecipeTime">30</span> min</span>
+                            <span class="meta-item">⭐ <span id="randomRecipeRating">4.5</span></span>
+                            <span class="meta-item">🍽️ <span id="randomRecipeCategory">Main Course</span></span>
+                        </div>
+                        <button class="btn btn-primary" id="viewRandomRecipeBtn">View Full Recipe</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="filters-section">
+        <div class="container">
+            <h2 class="section-title">All Recipes</h2>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="categoryFilter">Category:</label>
+                    <select id="categoryFilter" class="filter-select">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="cuisineFilter">Cuisine:</label>
+                    <select id="cuisineFilter" class="filter-select">
+                        <option value="">All Cuisines</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="complexityFilter">Complexity:</label>
+                    <select id="complexityFilter" class="filter-select">
+                        <option value="">All Levels</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="searchInput">Search:</label>
+                    <input type="text" id="searchInput" class="filter-input" placeholder="Recipe name...">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="recipes-section" id="recipes">
+        <div class="container">
+            <div class="recipes-grid" id="recipesGrid">
+            </div>
+
+            <div class="loading" id="loadingSpinner">
+                <div class="spinner"></div>
+                <p>Loading recipes...</p>
+            </div>
+
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <p>😔 No recipes found</p>
+            </div>
+
+            <div class="pagination" id="pagination">
+                <button class="btn btn-secondary" id="prevPage" disabled>← Previous</button>
+                <span class="page-info">Page <span id="currentPage">1</span></span>
+                <button class="btn btn-secondary" id="nextPage">Next →</button>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Recipes. Developers: Ioanna Havryliuk, Poremska Liudmyla, Oleksandr Rozheliuk</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
