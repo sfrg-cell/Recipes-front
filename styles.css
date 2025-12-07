@@ -457,7 +457,6 @@ body {
     cursor: not-allowed;
 }
 
-/* ==================== Footer ==================== */
 .footer {
     background-color: var(--text-dark);
     color: white;
@@ -466,7 +465,6 @@ body {
     margin-top: 3rem;
 }
 
-/* ==================== Responsive Design ==================== */
 @media (max-width: 768px) {
     .nav {
         flex-direction: column;
@@ -518,7 +516,6 @@ body {
     }
 }
 
-/* ==================== Recipe Details Page ==================== */
 .recipe-details {
     max-width: 900px;
     margin: 2rem auto;
