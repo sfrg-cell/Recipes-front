@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Details - Recipes</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="logo">
+                    <h1>🍳 Recipes</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html#recipes">Recipes</a></li>
+                    <li><a href="add-recipe.html">Add Recipe</a></li>
+                    <li><a href="#about">About</a></li>
+                </ul>
+                <div class="auth-buttons">
+                    <button class="btn btn-secondary" id="loginBtn">Login</button>
+                    <button class="btn btn-primary" id="registerBtn">Register</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="loading" class="loading">Loading recipe...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="recipeContent" style="display: none;">
+            <a href="index.html" class="back-button">← Back to Recipes</a>
+
+            <div class="recipe-details">
+                <div class="recipe-header">
+                    <h1 class="recipe-title" id="recipeTitle"></h1>
+
+                    <div id="recipeImageContainer"></div>
+
+                    <div class="recipe-meta-section">
+                        <div class="meta-item">
+                            <div class="meta-label">⏱️ Cooking Time</div>
+                            <div class="meta-value" id="cookingTime"></div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">🍽️ Servings</div>
+                            <div class="meta-value" id="servings"></div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">⭐ Rating</div>
+                            <div class="meta-value" id="rating"></div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">📂 Category</div>
+                            <div class="meta-value" id="category"></div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">🌍 Cuisine</div>
+                            <div class="meta-value" id="cuisine"></div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">📊 Complexity</div>
+                            <div class="meta-value" id="complexity"></div>
+                        </div>
+                    </div>
+
+                    <p class="recipe-description" id="description"></p>
+                </div>
+
+                <div class="recipe-section">
+                    <h2 class="section-title">Ingredients</h2>
+                    <ul class="ingredients-list" id="ingredientsList"></ul>
+                </div>
+
+                <div class="recipe-section">
+                    <h2 class="section-title">Instructions</h2>
+                    <div class="instructions" id="instructions"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Recipes. Developers: Ioanna Havryliuk, Poremska Liudmyla, Oleksandr Rozheliuk</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+
+        function getRecipeIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+
+        function loadRecipeDetails() {
+            const recipeId = getRecipeIdFromUrl();
+
+            if (!recipeId) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').textContent = 'No recipe ID provided';
+                document.getElementById('error').style.display = 'block';
+                return;
+            }
+
+            fetch(API_URL + '/recipes/' + recipeId + '/')
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Recipe not found');
+                    }
+                    return response.json();
+                })
+                .then(function(recipe) {
+                    displayRecipe(recipe);
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error').textContent = 'Failed to load recipe. ' + error.message;
+                    document.getElementById('error').style.display = 'block';
+                });
+        }
+
+        function displayRecipe(recipe) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('recipeContent').style.display = 'block';
+
+            document.getElementById('recipeTitle').textContent = recipe.title;
+            document.getElementById('description').textContent = recipe.description || 'No description available';
+            document.getElementById('cookingTime').textContent = (recipe.cooking_time || 'N/A') + ' min';
+            document.getElementById('servings').textContent = recipe.servings || 'N/A';
+            document.getElementById('rating').textContent = recipe.rating ? recipe.rating.toFixed(1) : 'N/A';
+            document.getElementById('category').textContent = recipe.category ? recipe.category.name : 'N/A';
+            document.getElementById('cuisine').textContent = recipe.cuisine ? recipe.cuisine.name : 'N/A';
+            document.getElementById('complexity').textContent = recipe.complexity ? recipe.complexity.name : 'N/A';
+            document.getElementById('instructions').textContent = recipe.instructions || 'No instructions available';
+
+            const imageContainer = document.getElementById('recipeImageContainer');
+            if (recipe.image) {
+                imageContainer.innerHTML = '<img src="' + recipe.image + '" alt="' + recipe.title + '" class="recipe-image">';
+            } else {
+                imageContainer.innerHTML = '<div class="recipe-placeholder">🍽️</div>';
+            }
+
+            const ingredientsList = document.getElementById('ingredientsList');
+            ingredientsList.innerHTML = '';
+
+            if (recipe.ingredients && recipe.ingredients.length > 0) {
+                for (var i = 0; i < recipe.ingredients.length; i++) {
+                    var recipeIngredient = recipe.ingredients[i];
+                    var li = document.createElement('li');
+                    li.className = 'ingredient-item';
+
+                    var ingredientName = recipeIngredient.ingredient ? recipeIngredient.ingredient.name : 'Unknown';
+                    var quantity = recipeIngredient.quantity;
+                    var unitName = recipeIngredient.unit ? recipeIngredient.unit.name : '';
+
+                    li.textContent = quantity + ' ' + unitName + ' ' + ingredientName;
+                    ingredientsList.appendChild(li);
+                }
+            } else {
+                ingredientsList.innerHTML = '<li class="ingredient-item">No ingredients listed</li>';
+            }
+
+            document.title = recipe.title + ' - Recipes';
+        }
+
+        window.onload = function() {
+            loadRecipeDetails();
+
+            document.getElementById('loginBtn').onclick = function() {
+                alert('Login functionality will be implemented later');
+            };
+            document.getElementById('registerBtn').onclick = function() {
+                alert('Registration functionality will be implemented later');
+            };
+        };
+    </script>
+</body>
+</html>

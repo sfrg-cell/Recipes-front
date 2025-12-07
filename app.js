@@ -1,0 +1,280 @@
+const API_URL = 'http://localhost:8000';
+
+let currentFilters = {
+    category: '',
+    cuisine: '',
+    complexity: '',
+    search: ''
+};
+
+let currentPage = 1;
+let nextPageUrl = null;
+let previousPageUrl = null;
+
+function loadRecipes() {
+    console.log('loadRecipes called, page:', currentPage);
+
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('recipesGrid').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'none';
+
+    let url = API_URL + '/recipes/?limit=6&offset=' + (currentPage - 1) * 6;
+
+    if (currentFilters.category) url += '&category=' + currentFilters.category;
+    if (currentFilters.cuisine) url += '&cuisine=' + currentFilters.cuisine;
+    if (currentFilters.complexity) url += '&complexity=' + currentFilters.complexity;
+    if (currentFilters.search) url += '&search=' + currentFilters.search;
+
+    console.log('Fetching from:', url);
+
+    fetch(url)
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Data received:', data);
+            console.log('Results count:', data.results ? data.results.length : 0);
+
+            document.getElementById('loadingSpinner').style.display = 'none';
+
+            if (data.results && data.results.length > 0) {
+                console.log('Showing recipes');
+                showRecipes(data.results);
+                updatePagination(data);
+            } else {
+                console.log('No recipes found, showing empty state');
+                document.getElementById('emptyState').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+        });
+}
+
+function showRecipes(recipes) {
+    console.log('showRecipes called with', recipes.length, 'recipes');
+    const grid = document.getElementById('recipesGrid');
+    console.log('Grid element:', grid);
+
+    grid.style.display = 'grid';
+    grid.innerHTML = '';
+
+    for (let i = 0; i < recipes.length; i++) {
+        const recipe = recipes[i];
+        console.log('Creating card for:', recipe.title);
+        const card = createRecipeCard(recipe);
+        grid.appendChild(card);
+    }
+
+    console.log('All cards added to grid');
+}
+
+function createRecipeCard(recipe) {
+    const card = document.createElement('div');
+    card.className = 'recipe-card';
+    card.onclick = function() {
+        window.location.href = 'recipe-details.html?id=' + recipe.id;
+    };
+
+    let imageHTML = '';
+    if (recipe.image) {
+        imageHTML = '<img src="' + recipe.image + '" alt="' + recipe.title + '">';
+    } else {
+        imageHTML = '<div class="recipe-card-image">🍽️</div>';
+    }
+
+    const description = recipe.description || 'Description not available';
+    const time = recipe.cooking_time || 'N/A';
+    const rating = recipe.rating ? recipe.rating.toFixed(1) : '0.0';
+    const category = recipe.category ? recipe.category.name : '';
+
+    card.innerHTML =
+        imageHTML +
+        '<div class="recipe-card-content">' +
+            '<h3 class="recipe-card-title">' + recipe.title + '</h3>' +
+            '<p class="recipe-card-description">' + description + '</p>' +
+            '<div class="recipe-card-meta">' +
+                '<div class="recipe-card-meta-item">⏱️ ' + time + ' min</div>' +
+                '<div class="recipe-card-rating">⭐ ' + rating + '</div>' +
+            '</div>' +
+            '<div class="recipe-card-meta" style="margin-top: 0.5rem;">' +
+                (category ? '<span class="recipe-card-category">' + category + '</span>' : '') +
+            '</div>' +
+        '</div>';
+
+    return card;
+}
+
+function loadRandomRecipe() {
+    fetch(API_URL + '/recipes/random/')
+        .then(response => response.json())
+        .then(recipe => {
+            document.getElementById('randomRecipeTitle').textContent = recipe.title;
+            document.getElementById('randomRecipeDescription').textContent = recipe.description || 'Description not available';
+            document.getElementById('randomRecipeTime').textContent = recipe.cooking_time || 'N/A';
+            document.getElementById('randomRecipeRating').textContent = recipe.rating ? recipe.rating.toFixed(1) : '0.0';
+            document.getElementById('randomRecipeCategory').textContent = recipe.category ? recipe.category.name : 'N/A';
+
+            const imageElement = document.getElementById('randomRecipeImage');
+            if (recipe.image) {
+                imageElement.src = recipe.image;
+                imageElement.style.display = 'block';
+            } else {
+                imageElement.style.display = 'none';
+            }
+
+            document.getElementById('viewRandomRecipeBtn').onclick = function() {
+                window.location.href = 'recipe-details.html?id=' + recipe.id;
+            };
+
+            document.getElementById('randomRecipeDisplay').style.display = 'flex';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load recipe');
+        });
+}
+
+function closeRandomRecipeDisplay() {
+    document.getElementById('randomRecipeDisplay').style.display = 'none';
+}
+
+function loadCategories() {
+    fetch(API_URL + '/categories/')
+        .then(response => response.json())
+        .then(categories => {
+            const select = document.getElementById('categoryFilter');
+            for (let i = 0; i < categories.length; i++) {
+                const option = document.createElement('option');
+                option.value = categories[i].id;
+                option.textContent = categories[i].name;
+                select.appendChild(option);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function loadCuisines() {
+    fetch(API_URL + '/cuisines/')
+        .then(response => response.json())
+        .then(cuisines => {
+            const select = document.getElementById('cuisineFilter');
+            for (let i = 0; i < cuisines.length; i++) {
+                const option = document.createElement('option');
+                option.value = cuisines[i].id;
+                option.textContent = cuisines[i].name;
+                select.appendChild(option);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function loadComplexities() {
+    fetch(API_URL + '/complexities/')
+        .then(response => response.json())
+        .then(complexities => {
+            const select = document.getElementById('complexityFilter');
+            for (let i = 0; i < complexities.length; i++) {
+                const option = document.createElement('option');
+                option.value = complexities[i].id;
+                option.textContent = complexities[i].name;
+                select.appendChild(option);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function updatePagination(data) {
+    document.getElementById('currentPage').textContent = currentPage;
+
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    nextPageUrl = data.next;
+    previousPageUrl = data.previous;
+
+    prevBtn.disabled = !previousPageUrl;
+    nextBtn.disabled = !nextPageUrl;
+}
+
+function previousPage() {
+    if (previousPageUrl && currentPage > 1) {
+        currentPage--;
+        loadRecipes();
+    }
+}
+
+function nextPage() {
+    if (nextPageUrl) {
+        currentPage++;
+        loadRecipes();
+    }
+}
+
+function applyFilters() {
+    console.log('Applying filters:', currentFilters);
+    currentPage = 1;
+    loadRecipes();
+}
+
+let searchTimeout;
+function searchRecipes() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(function() {
+        applyFilters();
+    }, 500);
+}
+
+window.onload = function() {
+    console.log('App initializing...');
+
+    loadCategories();
+    loadCuisines();
+    loadComplexities();
+
+    loadRecipes();
+
+    document.getElementById('randomRecipeBtn').onclick = loadRandomRecipe;
+
+    document.getElementById('closeRandomRecipe').onclick = closeRandomRecipeDisplay;
+    document.getElementById('randomRecipeDisplay').onclick = function(e) {
+        if (e.target.id === 'randomRecipeDisplay') {
+            closeRandomRecipeDisplay();
+        }
+    };
+
+    document.getElementById('categoryFilter').onchange = function() {
+        currentFilters.category = this.value;
+        applyFilters();
+    };
+
+    document.getElementById('cuisineFilter').onchange = function() {
+        currentFilters.cuisine = this.value;
+        applyFilters();
+    };
+
+    document.getElementById('complexityFilter').onchange = function() {
+        currentFilters.complexity = this.value;
+        applyFilters();
+    };
+
+    document.getElementById('searchInput').oninput = function() {
+        currentFilters.search = this.value;
+        searchRecipes();
+    };
+
+    document.getElementById('prevPage').onclick = previousPage;
+    document.getElementById('nextPage').onclick = nextPage;
+
+    document.getElementById('loginBtn').onclick = function() {
+        alert('Login functionality will be implemented later');
+    };
+    document.getElementById('registerBtn').onclick = function() {
+        alert('Registration functionality will be implemented later');
+    };
+
+    console.log('App initialized!');
+};

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .recipe { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        button { padding: 10px 20px; font-size: 16px; margin: 10px 0; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+
+    <button onclick="testConnection()">Test API Connection</button>
+    <button onclick="loadRecipes()">Load Recipes</button>
+
+    <div id="status"></div>
+    <div id="results"></div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+
+        function testConnection() {
+            const status = document.getElementById('status');
+            status.innerHTML = '<p>Testing connection...</p>';
+
+            fetch(API_URL + '/recipes/?limit=1')
+                .then(response => {
+                    status.innerHTML = '<p style="color: green;">Connected! Status: ' + response.status + '</p>';
+                    return response.json();
+                })
+                .then(data => {
+                    status.innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                })
+                .catch(error => {
+                    status.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+                    console.error('Error:', error);
+                });
+        }
+
+        function loadRecipes() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Loading recipes...</p>';
+
+            fetch(API_URL + '/recipes/?limit=6')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Data received:', data);
+
+                    if (data.results && data.results.length > 0) {
+                        let html = '<h2>Found ' + data.count + ' recipes:</h2>';
+
+                        for (let i = 0; i < data.results.length; i++) {
+                            const recipe = data.results[i];
+                            html += '<div class="recipe">';
+                            html += '<h3>' + recipe.title + '</h3>';
+                            html += '<p>' + recipe.description + '</p>';
+                            html += '<p>Time: ' + recipe.cooking_time + ' min</p>';
+                            html += '<p>Rating: ' + recipe.rating + '</p>';
+                            html += '<p>Category: ' + (recipe.category ? recipe.category.name : 'N/A') + '</p>';
+                            html += '</div>';
+                        }
+
+                        results.innerHTML = html;
+                    } else {
+                        results.innerHTML = '<p>No recipes found</p>';
+                    }
+                })
+                .catch(error => {
+                    results.innerHTML = '<p style="color: red;">Error loading recipes: ' + error.message + '</p>';
+                    console.error('Error:', error);
+                });
+        }
+    </script>
+</body>
+</html>
