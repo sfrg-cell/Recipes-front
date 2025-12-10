@@ -17,7 +17,7 @@
                     <li><a href="index.html">Home</a></li>
                     <li><a href="index.html#recipes">Recipes</a></li>
                     <li><a href="add-recipe.html">Add Recipe</a></li>
-                    <li><a href="#about">About</a></li>
+                    <li><a href="profile.html">Profile</a></li>
                 </ul>
                 <div class="auth-buttons">
                     <button class="btn btn-secondary" id="loginBtn">Login</button>
@@ -67,6 +67,8 @@
                     </div>
 
                     <p class="recipe-description" id="description"></p>
+
+                    <div id="favoriteButton" style="margin-top: 1rem;"></div>
                 </div>
 
                 <div class="recipe-section">
@@ -89,15 +91,22 @@
     </footer>
 
     <script>
-        const API_URL = 'http://localhost:8000';
+        var API_URL = 'http://localhost:8000';
+        var currentRecipeId = null;
+        var currentToken = null;
+
+        function getToken() {
+            return localStorage.getItem('access_token');
+        }
 
         function getRecipeIdFromUrl() {
-            const params = new URLSearchParams(window.location.search);
+            var params = new URLSearchParams(window.location.search);
             return params.get('id');
         }
 
         function loadRecipeDetails() {
-            const recipeId = getRecipeIdFromUrl();
+            var recipeId = getRecipeIdFromUrl();
+            currentRecipeId = recipeId;
 
             if (!recipeId) {
                 document.getElementById('loading').style.display = 'none';
@@ -115,6 +124,7 @@
                 })
                 .then(function(recipe) {
                     displayRecipe(recipe);
+                    checkIfFavorite();
                 })
                 .catch(function(error) {
                     console.error('Error:', error);
@@ -138,14 +148,14 @@
             document.getElementById('complexity').textContent = recipe.complexity ? recipe.complexity.name : 'N/A';
             document.getElementById('instructions').textContent = recipe.instructions || 'No instructions available';
 
-            const imageContainer = document.getElementById('recipeImageContainer');
+            var imageContainer = document.getElementById('recipeImageContainer');
             if (recipe.image) {
                 imageContainer.innerHTML = '<img src="' + recipe.image + '" alt="' + recipe.title + '" class="recipe-image">';
             } else {
                 imageContainer.innerHTML = '<div class="recipe-placeholder">🍽️</div>';
             }
 
-            const ingredientsList = document.getElementById('ingredientsList');
+            var ingredientsList = document.getElementById('ingredientsList');
             ingredientsList.innerHTML = '';
 
             if (recipe.ingredients && recipe.ingredients.length > 0) {
@@ -166,6 +176,95 @@
             }
 
             document.title = recipe.title + ' - Recipes';
+        }
+
+        function checkIfFavorite() {
+            currentToken = getToken();
+            if (!currentToken) {
+                showNotLoggedInButton();
+                return;
+            }
+
+            fetch(API_URL + '/recipes/' + currentRecipeId + '/check-favorite/', {
+                headers: {
+                    'Authorization': 'Bearer ' + currentToken
+                }
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.is_favorite) {
+                    showRemoveFromFavoritesButton(data.favorite_id);
+                } else {
+                    showAddToFavoritesButton();
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                showNotLoggedInButton();
+            });
+        }
+
+        function showNotLoggedInButton() {
+            var container = document.getElementById('favoriteButton');
+            container.innerHTML = '<button class="btn btn-secondary" onclick="alert(\'Please login to add to favorites\')">❤️ Add to Favorites (Login required)</button>';
+        }
+
+        function showAddToFavoritesButton() {
+            var container = document.getElementById('favoriteButton');
+            container.innerHTML = '<button class="btn btn-primary" onclick="addToFavorites()">❤️ Add to Favorites</button>';
+        }
+
+        function showRemoveFromFavoritesButton(favoriteId) {
+            var container = document.getElementById('favoriteButton');
+            container.innerHTML = '<button class="btn btn-secondary" onclick="removeFromFavorites(' + favoriteId + ')">💔 Remove from Favorites</button>';
+        }
+
+        function addToFavorites() {
+            fetch(API_URL + '/favorites/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + currentToken
+                },
+                body: JSON.stringify({
+                    recipe_id: parseInt(currentRecipeId)
+                })
+            })
+            .then(function(response) {
+                if (response.ok) {
+                    checkIfFavorite();
+                    alert('Added to favorites!');
+                } else {
+                    alert('Failed to add to favorites');
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                alert('Error');
+            });
+        }
+
+        function removeFromFavorites(favoriteId) {
+            fetch(API_URL + '/favorites/' + favoriteId + '/', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + currentToken
+                }
+            })
+            .then(function(response) {
+                if (response.ok) {
+                    checkIfFavorite();
+                    alert('Removed from favorites');
+                } else {
+                    alert('Failed to remove');
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                alert('Error');
+            });
         }
 
         window.onload = function() {
