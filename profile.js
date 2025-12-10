@@ -1,31 +1,24 @@
 var API_URL = 'http://localhost:8000';
-var currentToken = null;
-
-function getToken() {
-    return localStorage.getItem('access_token');
-}
 
 function checkAuth() {
-    var token = getToken();
+    var token = localStorage.getItem('access_token');
     if (!token) {
         document.getElementById('loginPrompt').style.display = 'block';
         document.getElementById('profileContent').style.display = 'none';
         return;
     }
 
-    currentToken = token;
     showUserInfo();
     loadFavorites();
     loadProducts();
 }
 
 function showUserInfo() {
-    fetch(API_URL + '/auth/user/', {
-        headers: {
-            'Authorization': 'Bearer ' + currentToken
-        }
-    })
+    fetchWithAuth(API_URL + '/auth/user/')
     .then(function(response) {
+        if (!response.ok) {
+            throw new Error('Not authenticated');
+        }
         return response.json();
     })
     .then(function(user) {
@@ -46,12 +39,11 @@ function loadFavorites() {
     document.getElementById('favoritesGrid').innerHTML = '';
     document.getElementById('favoritesEmpty').style.display = 'none';
 
-    fetch(API_URL + '/favorites/', {
-        headers: {
-            'Authorization': 'Bearer ' + currentToken
-        }
-    })
+    fetchWithAuth(API_URL + '/favorites/')
     .then(function(response) {
+        if (!response.ok) {
+            throw new Error('Failed to load favorites');
+        }
         return response.json();
     })
     .then(function(favorites) {
@@ -107,11 +99,8 @@ function removeFavorite(favoriteId) {
         return;
     }
 
-    fetch(API_URL + '/favorites/' + favoriteId + '/', {
-        method: 'DELETE',
-        headers: {
-            'Authorization': 'Bearer ' + currentToken
-        }
+    fetchWithAuth(API_URL + '/favorites/' + favoriteId + '/', {
+        method: 'DELETE'
     })
     .then(function(response) {
         if (response.ok) {
@@ -135,12 +124,11 @@ function loadProducts() {
     document.getElementById('productsGrid').innerHTML = '';
     document.getElementById('productsEmpty').style.display = 'none';
 
-    fetch(API_URL + '/user-products/', {
-        headers: {
-            'Authorization': 'Bearer ' + currentToken
-        }
-    })
+    fetchWithAuth(API_URL + '/user-products/')
     .then(function(response) {
+        if (!response.ok) {
+            throw new Error('Failed to load products');
+        }
         return response.json();
     })
     .then(function(products) {
@@ -195,11 +183,8 @@ function deleteProduct(productId) {
         return;
     }
 
-    fetch(API_URL + '/user-products/' + productId + '/', {
-        method: 'DELETE',
-        headers: {
-            'Authorization': 'Bearer ' + currentToken
-        }
+    fetchWithAuth(API_URL + '/user-products/' + productId + '/', {
+        method: 'DELETE'
     })
     .then(function(response) {
         if (response.ok) {
@@ -271,11 +256,10 @@ function addProduct(event) {
         data.expiration_date = expiration;
     }
 
-    fetch(API_URL + '/user-products/', {
+    fetchWithAuth(API_URL + '/user-products/', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + currentToken
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(data)
     })

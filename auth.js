@@ -22,6 +22,59 @@ function isLoggedIn() {
     return getAccessToken() !== null;
 }
 
+function refreshAccessToken() {
+    var refreshToken = getRefreshToken();
+    if (!refreshToken) {
+        return Promise.reject(new Error('No refresh token'));
+    }
+
+    return fetch(API_URL + '/auth/token/refresh/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            refresh: refreshToken
+        })
+    })
+    .then(function(response) {
+        if (!response.ok) {
+            clearTokens();
+            throw new Error('Failed to refresh token');
+        }
+        return response.json();
+    })
+    .then(function(data) {
+        localStorage.setItem('access_token', data.access);
+        if (data.refresh) {
+            localStorage.setItem('refresh_token', data.refresh);
+        }
+        return data.access;
+    });
+}
+
+function fetchWithAuth(url, options) {
+    options = options || {};
+    options.headers = options.headers || {};
+
+    var token = getAccessToken();
+    if (token) {
+        options.headers['Authorization'] = 'Bearer ' + token;
+    }
+
+    return fetch(url, options)
+        .then(function(response) {
+            if (response.status === 401) {
+                return refreshAccessToken()
+                    .then(function(newToken) {
+                        options.headers['Authorization'] = 'Bearer ' + newToken;
+                        return fetch(url, options);
+                    });
+            }
+            return response;
+        });
+}
+
 function showLoginModal() {
     document.getElementById('authModal').style.display = 'flex';
     document.getElementById('loginForm').style.display = 'block';
@@ -126,11 +179,17 @@ function handleRegister(event) {
         return response.json();
     })
     .then(function(data) {
-        alert('Registration successful! Please login.');
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('registerForm').style.display = 'none';
-        document.getElementById('modalTitle').textContent = 'Login';
-        document.getElementById('registerFormElement').reset();
+        if (data.access && data.refresh) {
+            setTokens(data.access, data.refresh);
+            closeAuthModal();
+            window.location.reload();
+        } else {
+            alert('Registration successful! Please login.');
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('modalTitle').textContent = 'Login';
+            document.getElementById('registerFormElement').reset();
+        }
     })
     .catch(function(error) {
         document.getElementById('registerError').textContent = error.message;
@@ -149,11 +208,7 @@ function updateNavigation() {
     if (!authButtons) return;
 
     if (isLoggedIn()) {
-        fetch(API_URL + '/auth/user/', {
-            headers: {
-                'Authorization': 'Bearer ' + getAccessToken()
-            }
-        })
+        fetchWithAuth(API_URL + '/auth/user/')
         .then(function(response) {
             if (!response.ok) {
                 throw new Error('Not authenticated');
