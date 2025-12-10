@@ -1,15 +1,15 @@
-const API_URL = 'http://localhost:8000';
+var API_URL = 'http://localhost:8000';
 
-let currentFilters = {
+var currentFilters = {
     category: '',
     cuisine: '',
     complexity: '',
     search: ''
 };
 
-let currentPage = 1;
-let nextPageUrl = null;
-let previousPageUrl = null;
+var currentPage = 1;
+var nextPageUrl = null;
+var previousPageUrl = null;
 
 function loadRecipes() {
     console.log('loadRecipes called, page:', currentPage);
@@ -18,7 +18,7 @@ function loadRecipes() {
     document.getElementById('recipesGrid').style.display = 'none';
     document.getElementById('emptyState').style.display = 'none';
 
-    let url = API_URL + '/recipes/?limit=6&offset=' + (currentPage - 1) * 6;
+    var url = API_URL + '/recipes/?limit=6&offset=' + (currentPage - 1) * 6;
 
     if (currentFilters.category) url += '&category=' + currentFilters.category;
     if (currentFilters.cuisine) url += '&cuisine=' + currentFilters.cuisine;
@@ -28,11 +28,11 @@ function loadRecipes() {
     console.log('Fetching from:', url);
 
     fetch(url)
-        .then(response => {
+        .then(function(response) {
             console.log('Response status:', response.status);
             return response.json();
         })
-        .then(data => {
+        .then(function(data) {
             console.log('Data received:', data);
             console.log('Results count:', data.results ? data.results.length : 0);
 
@@ -47,7 +47,7 @@ function loadRecipes() {
                 document.getElementById('emptyState').style.display = 'block';
             }
         })
-        .catch(error => {
+        .catch(function(error) {
             console.error('Error:', error);
             document.getElementById('loadingSpinner').style.display = 'none';
             document.getElementById('emptyState').style.display = 'block';
@@ -56,16 +56,16 @@ function loadRecipes() {
 
 function showRecipes(recipes) {
     console.log('showRecipes called with', recipes.length, 'recipes');
-    const grid = document.getElementById('recipesGrid');
+    var grid = document.getElementById('recipesGrid');
     console.log('Grid element:', grid);
 
     grid.style.display = 'grid';
     grid.innerHTML = '';
 
-    for (let i = 0; i < recipes.length; i++) {
-        const recipe = recipes[i];
+    for (var i = 0; i < recipes.length; i++) {
+        var recipe = recipes[i];
         console.log('Creating card for:', recipe.title);
-        const card = createRecipeCard(recipe);
+        var card = createRecipeCard(recipe);
         grid.appendChild(card);
     }
 
@@ -73,23 +73,23 @@ function showRecipes(recipes) {
 }
 
 function createRecipeCard(recipe) {
-    const card = document.createElement('div');
+    var card = document.createElement('div');
     card.className = 'recipe-card';
     card.onclick = function() {
         window.location.href = 'recipe-details.html?id=' + recipe.id;
     };
 
-    let imageHTML = '';
+    var imageHTML = '';
     if (recipe.image) {
         imageHTML = '<img src="' + recipe.image + '" alt="' + recipe.title + '">';
     } else {
         imageHTML = '<div class="recipe-card-image">🍽️</div>';
     }
 
-    const description = recipe.description || 'Description not available';
-    const time = recipe.cooking_time || 'N/A';
-    const rating = recipe.rating ? recipe.rating.toFixed(1) : '0.0';
-    const category = recipe.category ? recipe.category.name : '';
+    var description = recipe.description || 'Description not available';
+    var time = recipe.cooking_time || 'N/A';
+    var rating = recipe.rating ? recipe.rating.toFixed(1) : '0.0';
+    var category = recipe.category ? recipe.category.name : '';
 
     card.innerHTML =
         imageHTML +
@@ -110,15 +110,17 @@ function createRecipeCard(recipe) {
 
 function loadRandomRecipe() {
     fetch(API_URL + '/recipes/random/')
-        .then(response => response.json())
-        .then(recipe => {
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(recipe) {
             document.getElementById('randomRecipeTitle').textContent = recipe.title;
             document.getElementById('randomRecipeDescription').textContent = recipe.description || 'Description not available';
             document.getElementById('randomRecipeTime').textContent = recipe.cooking_time || 'N/A';
             document.getElementById('randomRecipeRating').textContent = recipe.rating ? recipe.rating.toFixed(1) : '0.0';
             document.getElementById('randomRecipeCategory').textContent = recipe.category ? recipe.category.name : 'N/A';
 
-            const imageElement = document.getElementById('randomRecipeImage');
+            var imageElement = document.getElementById('randomRecipeImage');
             if (recipe.image) {
                 imageElement.src = recipe.image;
                 imageElement.style.display = 'block';
@@ -132,7 +134,7 @@ function loadRandomRecipe() {
 
             document.getElementById('randomRecipeDisplay').style.display = 'flex';
         })
-        .catch(error => {
+        .catch(function(error) {
             console.error('Error:', error);
             alert('Failed to load recipe');
         });
@@ -144,54 +146,66 @@ function closeRandomRecipeDisplay() {
 
 function loadCategories() {
     fetch(API_URL + '/categories/')
-        .then(response => response.json())
-        .then(categories => {
-            const select = document.getElementById('categoryFilter');
-            for (let i = 0; i < categories.length; i++) {
-                const option = document.createElement('option');
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(categories) {
+            var select = document.getElementById('categoryFilter');
+            for (var i = 0; i < categories.length; i++) {
+                var option = document.createElement('option');
                 option.value = categories[i].id;
                 option.textContent = categories[i].name;
                 select.appendChild(option);
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(function(error) {
+            console.error('Error:', error);
+        });
 }
 
 function loadCuisines() {
     fetch(API_URL + '/cuisines/')
-        .then(response => response.json())
-        .then(cuisines => {
-            const select = document.getElementById('cuisineFilter');
-            for (let i = 0; i < cuisines.length; i++) {
-                const option = document.createElement('option');
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(cuisines) {
+            var select = document.getElementById('cuisineFilter');
+            for (var i = 0; i < cuisines.length; i++) {
+                var option = document.createElement('option');
                 option.value = cuisines[i].id;
                 option.textContent = cuisines[i].name;
                 select.appendChild(option);
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(function(error) {
+            console.error('Error:', error);
+        });
 }
 
 function loadComplexities() {
     fetch(API_URL + '/complexities/')
-        .then(response => response.json())
-        .then(complexities => {
-            const select = document.getElementById('complexityFilter');
-            for (let i = 0; i < complexities.length; i++) {
-                const option = document.createElement('option');
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(complexities) {
+            var select = document.getElementById('complexityFilter');
+            for (var i = 0; i < complexities.length; i++) {
+                var option = document.createElement('option');
                 option.value = complexities[i].id;
                 option.textContent = complexities[i].name;
                 select.appendChild(option);
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(function(error) {
+            console.error('Error:', error);
+        });
 }
 
 function updatePagination(data) {
     document.getElementById('currentPage').textContent = currentPage;
 
-    const prevBtn = document.getElementById('prevPage');
-    const nextBtn = document.getElementById('nextPage');
+    var prevBtn = document.getElementById('prevPage');
+    var nextBtn = document.getElementById('nextPage');
 
     nextPageUrl = data.next;
     previousPageUrl = data.previous;
@@ -220,7 +234,7 @@ function applyFilters() {
     loadRecipes();
 }
 
-let searchTimeout;
+var searchTimeout;
 function searchRecipes() {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(function() {
@@ -230,6 +244,8 @@ function searchRecipes() {
 
 window.onload = function() {
     console.log('App initializing...');
+
+    initAuth();
 
     loadCategories();
     loadCuisines();
@@ -268,13 +284,6 @@ window.onload = function() {
 
     document.getElementById('prevPage').onclick = previousPage;
     document.getElementById('nextPage').onclick = nextPage;
-
-    document.getElementById('loginBtn').onclick = function() {
-        alert('Login functionality will be implemented later');
-    };
-    document.getElementById('registerBtn').onclick = function() {
-        alert('Registration functionality will be implemented later');
-    };
 
     console.log('App initialized!');
 };

@@ -300,10 +300,11 @@ function logout() {
 }
 
 function showLoginModal() {
-    alert('Please use login button in navigation');
+    document.getElementById('authModal').style.display = 'flex';
 }
 
 window.onload = function() {
+    initAuth();
     checkAuth();
 
     document.getElementById('logoutBtn').onclick = logout;
