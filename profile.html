@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Recipes</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="logo">
+                    <h1>🍳 Recipes</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html#recipes">Recipes</a></li>
+                    <li><a href="add-recipe.html">Add Recipe</a></li>
+                    <li><a href="profile.html" class="active">Profile</a></li>
+                </ul>
+                <div class="auth-buttons" id="authButtons">
+                    <button class="btn btn-secondary" id="loginBtn">Login</button>
+                    <button class="btn btn-primary" id="registerBtn">Register</button>
+                </div>
+                <div class="user-info" id="userInfo" style="display: none;">
+                    <span id="username"></span>
+                    <button class="btn btn-secondary" id="logoutBtn">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="margin-top: 2rem;">
+        <div id="loginPrompt" class="empty-state">
+            <p>Please login to view your profile</p>
+            <button class="btn btn-primary" onclick="showLoginModal()">Login</button>
+        </div>
+
+        <div id="profileContent" style="display: none;">
+            <h1 class="section-title">My Profile</h1>
+
+            <div class="profile-tabs">
+                <button class="tab-button active" onclick="switchTab('favorites')">
+                    ❤️ My Favorites (<span id="favoritesCount">0</span>)
+                </button>
+                <button class="tab-button" onclick="switchTab('products')">
+                    🛒 My Products (<span id="productsCount">0</span>)
+                </button>
+            </div>
+
+            <div id="favoritesTab" class="tab-content active">
+                <h2 class="section-title">Favorite Recipes</h2>
+                <div class="loading" id="favoritesLoading">
+                    <div class="spinner"></div>
+                    <p>Loading favorites...</p>
+                </div>
+                <div class="recipes-grid" id="favoritesGrid"></div>
+                <div class="empty-state" id="favoritesEmpty" style="display: none;">
+                    <p>😔 You don't have any favorite recipes yet</p>
+                </div>
+            </div>
+
+            <div id="productsTab" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2 class="section-title" style="margin: 0;">My Products</h2>
+                    <button class="btn btn-primary" onclick="showAddProductModal()">+ Add Product</button>
+                </div>
+                <div class="loading" id="productsLoading">
+                    <div class="spinner"></div>
+                    <p>Loading products...</p>
+                </div>
+                <div id="productsGrid" class="products-grid"></div>
+                <div class="empty-state" id="productsEmpty" style="display: none;">
+                    <p>😔 You don't have any products yet</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="addProductModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeAddProductModal()">&times;</button>
+            <h2>Add Product</h2>
+            <form id="addProductForm">
+                <div class="form-group">
+                    <label for="productIngredient">Ingredient:</label>
+                    <select id="productIngredient" required>
+                        <option value="">Select ingredient...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="productQuantity">Quantity:</label>
+                    <input type="number" id="productQuantity" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="productExpiration">Expiration Date (optional):</label>
+                    <input type="date" id="productExpiration">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddProductModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Recipes. Developers: Ioanna Havryliuk, Poremska Liudmyla, Oleksandr Rozheliuk</p>
+        </div>
+    </footer>
+
+    <script src="profile.js"></script>
+</body>
+</html>
