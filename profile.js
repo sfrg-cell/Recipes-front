@@ -1,27 +1,42 @@
 var API_URL = 'http://localhost:8000';
 
+function getRefreshToken() {
+    return localStorage.getItem('refresh_token');
+}
+
 function checkAuth() {
+    console.log('checkAuth called');
     var token = localStorage.getItem('access_token');
-    if (!token) {
+    var refreshToken = localStorage.getItem('refresh_token');
+
+    console.log('Has access token:', !!token);
+    console.log('Has refresh token:', !!refreshToken);
+
+    if (!token && !refreshToken) {
+        console.log('No tokens found, showing login prompt');
         document.getElementById('loginPrompt').style.display = 'block';
         document.getElementById('profileContent').style.display = 'none';
         return;
     }
 
+    console.log('Tokens found, loading profile data...');
     showUserInfo();
     loadFavorites();
     loadProducts();
 }
 
 function showUserInfo() {
+    console.log('Loading user info...');
     fetchWithAuth(API_URL + '/auth/user/')
     .then(function(response) {
+        console.log('User info response status:', response.status);
         if (!response.ok) {
             throw new Error('Not authenticated');
         }
         return response.json();
     })
     .then(function(user) {
+        console.log('User loaded:', user.username);
         document.getElementById('username').textContent = user.username;
         document.getElementById('userInfo').style.display = 'flex';
         document.getElementById('authButtons').style.display = 'none';
@@ -29,24 +44,34 @@ function showUserInfo() {
         document.getElementById('profileContent').style.display = 'block';
     })
     .catch(function(error) {
-        console.error('Error:', error);
-        logout();
+        console.error('Error loading user info:', error);
+        if (!getRefreshToken()) {
+            console.log('No refresh token, logging out');
+            logout();
+        } else {
+            console.log('Still have refresh token, showing login prompt');
+            document.getElementById('loginPrompt').style.display = 'block';
+            document.getElementById('profileContent').style.display = 'none';
+        }
     });
 }
 
 function loadFavorites() {
+    console.log('Loading favorites...');
     document.getElementById('favoritesLoading').style.display = 'block';
     document.getElementById('favoritesGrid').innerHTML = '';
     document.getElementById('favoritesEmpty').style.display = 'none';
 
     fetchWithAuth(API_URL + '/favorites/')
     .then(function(response) {
+        console.log('Favorites response status:', response.status);
         if (!response.ok) {
             throw new Error('Failed to load favorites');
         }
         return response.json();
     })
     .then(function(favorites) {
+        console.log('Favorites loaded:', favorites.length);
         document.getElementById('favoritesLoading').style.display = 'none';
         document.getElementById('favoritesCount').textContent = favorites.length;
 
@@ -62,8 +87,11 @@ function loadFavorites() {
         }
     })
     .catch(function(error) {
-        console.error('Error:', error);
+        console.error('Error loading favorites:', error);
         document.getElementById('favoritesLoading').style.display = 'none';
+        if (getRefreshToken()) {
+            document.getElementById('favoritesEmpty').style.display = 'block';
+        }
     });
 }
 
@@ -99,19 +127,25 @@ function removeFavorite(favoriteId) {
         return;
     }
 
+    console.log('Removing favorite:', favoriteId);
     fetchWithAuth(API_URL + '/favorites/' + favoriteId + '/', {
         method: 'DELETE'
     })
     .then(function(response) {
+        console.log('Remove favorite response status:', response.status);
         if (response.ok) {
+            console.log('Favorite removed successfully');
             loadFavorites();
         } else {
+            console.error('Failed to remove, status:', response.status);
             alert('Failed to remove');
         }
     })
     .catch(function(error) {
-        console.error('Error:', error);
-        alert('Error');
+        console.error('Error removing favorite:', error);
+        if (getRefreshToken()) {
+            alert('Error: ' + error.message);
+        }
     });
 }
 
@@ -288,8 +322,27 @@ function showLoginModal() {
 }
 
 window.onload = function() {
-    initAuth();
-    checkAuth();
+    console.log('Profile page loaded');
+
+    var authInitialized = false;
+
+    if (typeof initAuth === 'function') {
+        initAuth();
+        authInitialized = true;
+    }
+
+    if (authInitialized && typeof checkAndRefreshToken === 'function') {
+        checkAndRefreshToken().then(function() {
+            console.log('Tokens checked and refreshed, now loading profile');
+            checkAuth();
+        }).catch(function(error) {
+            console.error('Error during token refresh:', error);
+            checkAuth();
+        });
+    } else {
+        console.log('checkAndRefreshToken not available, checking auth directly');
+        checkAuth();
+    }
 
     document.getElementById('logoutBtn').onclick = logout;
     document.getElementById('addProductForm').onsubmit = addProduct;

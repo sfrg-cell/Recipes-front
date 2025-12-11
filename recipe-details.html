@@ -327,8 +327,21 @@
         }
 
         window.onload = function() {
+            console.log('Recipe details page loaded');
+
             initAuth();
-            loadRecipeDetails();
+
+            if (typeof checkAndRefreshToken === 'function') {
+                checkAndRefreshToken().then(function() {
+                    console.log('Tokens checked, loading recipe details');
+                    loadRecipeDetails();
+                }).catch(function(error) {
+                    console.error('Error during token refresh:', error);
+                    loadRecipeDetails();
+                });
+            } else {
+                loadRecipeDetails();
+            }
         };
     </script>
 </body>
