@@ -162,11 +162,6 @@
     <script>
         var API_URL = 'http://localhost:8000';
         var currentRecipeId = null;
-        var currentToken = null;
-
-        function getToken() {
-            return localStorage.getItem('access_token');
-        }
 
         function getRecipeIdFromUrl() {
             var params = new URLSearchParams(window.location.search);
@@ -248,18 +243,17 @@
         }
 
         function checkIfFavorite() {
-            currentToken = getToken();
-            if (!currentToken) {
+            var token = localStorage.getItem('access_token');
+            if (!token) {
                 showNotLoggedInButton();
                 return;
             }
 
-            fetch(API_URL + '/recipes/' + currentRecipeId + '/check-favorite/', {
-                headers: {
-                    'Authorization': 'Bearer ' + currentToken
-                }
-            })
+            fetchWithAuth(API_URL + '/recipes/' + currentRecipeId + '/check-favorite/')
             .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to check favorite');
+                }
                 return response.json();
             })
             .then(function(data) {
@@ -291,11 +285,10 @@
         }
 
         function addToFavorites() {
-            fetch(API_URL + '/favorites/', {
+            fetchWithAuth(API_URL + '/favorites/', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + currentToken
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     recipe_id: parseInt(currentRecipeId)
@@ -316,11 +309,8 @@
         }
 
         function removeFromFavorites(favoriteId) {
-            fetch(API_URL + '/favorites/' + favoriteId + '/', {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': 'Bearer ' + currentToken
-                }
+            fetchWithAuth(API_URL + '/favorites/' + favoriteId + '/', {
+                method: 'DELETE'
             })
             .then(function(response) {
                 if (response.ok) {
