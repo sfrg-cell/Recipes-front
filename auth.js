@@ -1,4 +1,5 @@
 var API_URL = 'http://localhost:8000';
+var refreshTokenPromise = null;
 
 function getAccessToken() {
     return localStorage.getItem('access_token');
@@ -22,13 +23,81 @@ function isLoggedIn() {
     return getAccessToken() !== null;
 }
 
+function isTokenExpired(token) {
+    if (!token) return true;
+
+    try {
+        var parts = token.split('.');
+        if (parts.length !== 3) return true;
+
+        var payload = JSON.parse(atob(parts[1]));
+        var exp = payload.exp * 1000;
+        var now = Date.now();
+
+        var buffer = 10 * 1000;
+        var isExpired = now >= (exp - buffer);
+
+        if (isExpired) {
+            console.log('Token is expired or expiring soon (within 10s)');
+            console.log('Token exp:', new Date(exp).toISOString());
+            console.log('Now:', new Date(now).toISOString());
+        }
+
+        return isExpired;
+    } catch (e) {
+        console.error('Error checking token expiration:', e);
+        return true;
+    }
+}
+
+function shouldRefreshToken(token) {
+    if (!token) return false;
+
+    try {
+        var parts = token.split('.');
+        if (parts.length !== 3) return false;
+
+        var payload = JSON.parse(atob(parts[1]));
+        var exp = payload.exp * 1000;
+        var now = Date.now();
+
+        var timeUntilExpiry = exp - now;
+        var oneMinute = 60 * 1000;
+
+        var shouldRefresh = timeUntilExpiry < oneMinute && timeUntilExpiry > 0;
+
+        if (shouldRefresh) {
+            console.log('Token should be refreshed proactively');
+            console.log('Time until expiry:', Math.floor(timeUntilExpiry / 1000), 'seconds');
+        }
+
+        return shouldRefresh;
+    } catch (e) {
+        console.error('Error checking token refresh:', e);
+        return false;
+    }
+}
+
 function refreshAccessToken() {
+    if (refreshTokenPromise) {
+        console.log('Token refresh already in progress, reusing promise');
+        return refreshTokenPromise;
+    }
+
     var refreshToken = getRefreshToken();
     if (!refreshToken) {
+        console.error('No refresh token available');
         return Promise.reject(new Error('No refresh token'));
     }
 
-    return fetch(API_URL + '/auth/token/refresh/', {
+    if (isTokenExpired(refreshToken)) {
+        console.error('Refresh token is expired');
+        clearTokens();
+        return Promise.reject(new Error('Refresh token expired'));
+    }
+
+    console.log('Refreshing access token...');
+    refreshTokenPromise = fetch(API_URL + '/auth/token/refresh/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -39,18 +108,38 @@ function refreshAccessToken() {
     })
     .then(function(response) {
         if (!response.ok) {
-            clearTokens();
+            console.error('Token refresh failed with status:', response.status);
+            if (response.status === 401) {
+                console.error('Refresh token is invalid, clearing all tokens');
+                clearTokens();
+            } else {
+                console.error('Network or server error, keeping refresh token');
+                localStorage.removeItem('access_token');
+            }
+            refreshTokenPromise = null;
             throw new Error('Failed to refresh token');
         }
         return response.json();
     })
     .then(function(data) {
-        localStorage.setItem('access_token', data.access);
-        if (data.refresh) {
-            localStorage.setItem('refresh_token', data.refresh);
+        console.log('Token refreshed successfully');
+        if (!data.access) {
+            console.error('No access token in response');
+            refreshTokenPromise = null;
+            throw new Error('Invalid token response');
         }
+        localStorage.setItem('access_token', data.access);
+        console.log('New access token saved');
+        refreshTokenPromise = null;
         return data.access;
+    })
+    .catch(function(error) {
+        console.error('Error during token refresh:', error);
+        refreshTokenPromise = null;
+        throw error;
     });
+
+    return refreshTokenPromise;
 }
 
 function fetchWithAuth(url, options) {
@@ -58,6 +147,28 @@ function fetchWithAuth(url, options) {
     options.headers = options.headers || {};
 
     var token = getAccessToken();
+
+    if (isTokenExpired(token) || shouldRefreshToken(token)) {
+        console.log('Token expired or expiring soon, refreshing before request...');
+        return refreshAccessToken()
+            .then(function(newToken) {
+                options.headers['Authorization'] = 'Bearer ' + newToken;
+                return fetch(url, options);
+            })
+            .catch(function(error) {
+                console.error('Token refresh failed:', error);
+                var stillHasRefresh = getRefreshToken();
+                console.log('Still has refresh token after error:', !!stillHasRefresh);
+                if (!stillHasRefresh) {
+                    console.log('No refresh token, redirecting to home');
+                    window.location.href = 'index.html';
+                } else {
+                    console.log('Refresh token still exists, not redirecting');
+                }
+                throw error;
+            });
+    }
+
     if (token) {
         options.headers['Authorization'] = 'Bearer ' + token;
     }
@@ -65,10 +176,23 @@ function fetchWithAuth(url, options) {
     return fetch(url, options)
         .then(function(response) {
             if (response.status === 401) {
+                console.log('Got 401, attempting token refresh...');
                 return refreshAccessToken()
                     .then(function(newToken) {
                         options.headers['Authorization'] = 'Bearer ' + newToken;
                         return fetch(url, options);
+                    })
+                    .catch(function(error) {
+                        console.error('Token refresh failed after 401:', error);
+                        var stillHasRefresh = getRefreshToken();
+                        console.log('Still has refresh token after 401 error:', !!stillHasRefresh);
+                        if (!stillHasRefresh) {
+                            console.log('No refresh token left, redirecting to home');
+                            window.location.href = 'index.html';
+                        } else {
+                            console.log('Refresh token still exists, not redirecting');
+                        }
+                        throw error;
                     });
             }
             return response;
@@ -223,11 +347,13 @@ function updateNavigation() {
             }
         })
         .catch(function(error) {
-            clearTokens();
+            console.error('updateNavigation error:', error);
             if (userInfo) {
                 userInfo.style.display = 'none';
             }
-            authButtons.style.display = 'flex';
+            if (authButtons) {
+                authButtons.style.display = 'flex';
+            }
         });
     } else {
         if (userInfo) {
@@ -248,8 +374,45 @@ function togglePassword(inputId, button) {
     }
 }
 
+function checkAndRefreshToken() {
+    var token = getAccessToken();
+    var refreshToken = getRefreshToken();
+
+    if (!token || !refreshToken) {
+        console.log('No tokens found');
+        return Promise.resolve();
+    }
+
+    if (isTokenExpired(refreshToken)) {
+        console.log('Refresh token expired, clearing tokens');
+        clearTokens();
+        return Promise.resolve();
+    }
+
+    if (isTokenExpired(token)) {
+        console.log('Access token expired, refreshing...');
+        return refreshAccessToken()
+            .catch(function(error) {
+                console.error('Failed to refresh token on page load:', error);
+            });
+    }
+
+    if (shouldRefreshToken(token)) {
+        console.log('Access token expiring soon, refreshing proactively...');
+        return refreshAccessToken()
+            .catch(function(error) {
+                console.warn('Proactive token refresh failed:', error);
+            });
+    }
+
+    return Promise.resolve();
+}
+
 function initAuth() {
-    updateNavigation();
+    checkAndRefreshToken()
+        .then(function() {
+            updateNavigation();
+        });
 
     var loginBtn = document.getElementById('loginBtn');
     var registerBtn = document.getElementById('registerBtn');
