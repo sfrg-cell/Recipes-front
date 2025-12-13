@@ -81,7 +81,7 @@ function createRecipeCard(recipe) {
 
     var imageHTML = '';
     if (recipe.image) {
-        imageHTML = '<img src="' + recipe.image + '" alt="' + recipe.title + '">';
+        imageHTML = '<img src="' + recipe.image + '" alt="' + recipe.title + '" class="recipe-card-image">';
     } else {
         imageHTML = '<div class="recipe-card-image">🍽️</div>';
     }
@@ -244,8 +244,6 @@ function searchRecipes() {
 
 window.onload = function() {
     console.log('App initializing...');
-
-    initAuth();
 
     loadCategories();
     loadCuisines();

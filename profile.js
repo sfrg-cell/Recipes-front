@@ -20,40 +20,10 @@ function checkAuth() {
     }
 
     console.log('Tokens found, loading profile data...');
-    showUserInfo();
+    document.getElementById('loginPrompt').style.display = 'none';
+    document.getElementById('profileContent').style.display = 'block';
     loadFavorites();
     loadProducts();
-}
-
-function showUserInfo() {
-    console.log('Loading user info...');
-    fetchWithAuth(API_URL + '/auth/user/')
-    .then(function(response) {
-        console.log('User info response status:', response.status);
-        if (!response.ok) {
-            throw new Error('Not authenticated');
-        }
-        return response.json();
-    })
-    .then(function(user) {
-        console.log('User loaded:', user.username);
-        document.getElementById('username').textContent = user.username;
-        document.getElementById('userInfo').style.display = 'flex';
-        document.getElementById('authButtons').style.display = 'none';
-        document.getElementById('loginPrompt').style.display = 'none';
-        document.getElementById('profileContent').style.display = 'block';
-    })
-    .catch(function(error) {
-        console.error('Error loading user info:', error);
-        if (!getRefreshToken()) {
-            console.log('No refresh token, logging out');
-            logout();
-        } else {
-            console.log('Still have refresh token, showing login prompt');
-            document.getElementById('loginPrompt').style.display = 'block';
-            document.getElementById('profileContent').style.display = 'none';
-        }
-    });
 }
 
 function loadFavorites() {
@@ -234,12 +204,19 @@ function deleteProduct(productId) {
 }
 
 function switchTab(tabName) {
+    var tabButtons = document.querySelectorAll('.tab-button');
+    for (var i = 0; i < tabButtons.length; i++) {
+        tabButtons[i].classList.remove('active');
+    }
+
     if (tabName === 'favorites') {
         document.getElementById('favoritesTab').classList.add('active');
         document.getElementById('productsTab').classList.remove('active');
+        tabButtons[0].classList.add('active');
     } else {
         document.getElementById('favoritesTab').classList.remove('active');
         document.getElementById('productsTab').classList.add('active');
+        tabButtons[1].classList.add('active');
     }
 }
 
@@ -251,7 +228,10 @@ function showAddProductModal() {
 function closeAddProductModal() {
     document.getElementById('addProductModal').style.display = 'none';
     document.getElementById('addProductForm').reset();
+    document.getElementById('productUnitDisplay').textContent = '-';
 }
+
+var ingredientsData = [];
 
 function loadIngredientsForModal() {
     fetch(API_URL + '/ingredients/')
@@ -259,6 +239,8 @@ function loadIngredientsForModal() {
             return response.json();
         })
         .then(function(ingredients) {
+            console.log('Loaded ingredients:', ingredients);
+            ingredientsData = ingredients;
             var select = document.getElementById('productIngredient');
             select.innerHTML = '<option value="">Select ingredient...</option>';
 
@@ -266,12 +248,41 @@ function loadIngredientsForModal() {
                 var option = document.createElement('option');
                 option.value = ingredients[i].id;
                 option.textContent = ingredients[i].name;
+
+                var unitName = '';
+                if (ingredients[i].unit && ingredients[i].unit.name) {
+                    unitName = ingredients[i].unit.name;
+                } else if (ingredients[i].unit) {
+                    console.log('Ingredient has unit but no name:', ingredients[i]);
+                } else {
+                    console.log('Ingredient has no unit:', ingredients[i].name);
+                }
+                option.dataset.unit = unitName;
+
                 select.appendChild(option);
             }
         })
         .catch(function(error) {
             console.error('Error:', error);
         });
+}
+
+function updateProductUnit() {
+    var select = document.getElementById('productIngredient');
+    var unitDisplay = document.getElementById('productUnitDisplay');
+
+    if (select.selectedIndex > 0) {
+        var selectedOption = select.options[select.selectedIndex];
+        var unitName = selectedOption.dataset.unit;
+
+        if (unitName && unitName !== '' && unitName !== 'undefined') {
+            unitDisplay.textContent = unitName;
+        } else {
+            unitDisplay.textContent = 'units';
+        }
+    } else {
+        unitDisplay.textContent = '-';
+    }
 }
 
 function addProduct(event) {
@@ -301,37 +312,26 @@ function addProduct(event) {
         if (response.ok) {
             closeAddProductModal();
             loadProducts();
+            return response.json();
         } else {
-            alert('Error adding product');
+            return response.json().then(function(err) {
+                throw new Error(JSON.stringify(err));
+            });
         }
+    })
+    .then(function(data) {
+        console.log('Product added successfully:', data);
     })
     .catch(function(error) {
         console.error('Error:', error);
-        alert('Error');
+        alert('Error adding product: ' + error.message);
     });
-}
-
-function logout() {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    window.location.href = 'index.html';
-}
-
-function showLoginModal() {
-    document.getElementById('authModal').style.display = 'flex';
 }
 
 window.onload = function() {
     console.log('Profile page loaded');
 
-    var authInitialized = false;
-
-    if (typeof initAuth === 'function') {
-        initAuth();
-        authInitialized = true;
-    }
-
-    if (authInitialized && typeof checkAndRefreshToken === 'function') {
+    if (typeof checkAndRefreshToken === 'function') {
         checkAndRefreshToken().then(function() {
             console.log('Tokens checked and refreshed, now loading profile');
             checkAuth();
@@ -344,6 +344,5 @@ window.onload = function() {
         checkAuth();
     }
 
-    document.getElementById('logoutBtn').onclick = logout;
     document.getElementById('addProductForm').onsubmit = addProduct;
 };
