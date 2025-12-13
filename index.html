@@ -122,70 +122,8 @@
         </div>
     </footer>
 
-    <div id="authModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <button class="close-btn" onclick="closeAuthModal()">&times;</button>
-            <h2 id="modalTitle">Login</h2>
 
-            <div id="loginForm">
-                <form id="loginFormElement">
-                    <div class="form-group">
-                        <label for="loginUsername">Username:</label>
-                        <input type="text" id="loginUsername" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Password:</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="loginPassword" required>
-                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">🔒</button>
-                        </div>
-                    </div>
-                    <div class="error" id="loginError" style="display: block; padding: 0; margin-bottom: 1rem; font-size: 0.9rem;"></div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" style="flex: 1;">Login</button>
-                    </div>
-                    <p style="text-align: center; margin-top: 1rem;">
-                        Don't have an account? <a href="#" onclick="showRegisterModal(); return false;" style="color: var(--primary-color);">Register</a>
-                    </p>
-                </form>
-            </div>
-
-            <div id="registerForm" style="display: none;">
-                <form id="registerFormElement">
-                    <div class="form-group">
-                        <label for="registerUsername">Username:</label>
-                        <input type="text" id="registerUsername" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="registerEmail">Email:</label>
-                        <input type="email" id="registerEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="registerPassword">Password:</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="registerPassword" required>
-                            <button type="button" class="password-toggle" onclick="togglePassword('registerPassword', this)">🔒</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="registerPassword2">Confirm Password:</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="registerPassword2" required>
-                            <button type="button" class="password-toggle" onclick="togglePassword('registerPassword2', this)">🔒</button>
-                        </div>
-                    </div>
-                    <div class="error" id="registerError" style="display: block; padding: 0; margin-bottom: 1rem; font-size: 0.9rem;"></div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" style="flex: 1;">Register</button>
-                    </div>
-                    <p style="text-align: center; margin-top: 1rem;">
-                        Already have an account? <a href="#" onclick="showLoginModal(); return false;" style="color: var(--primary-color);">Login</a>
-                    </p>
-                </form>
-            </div>
-        </div>
-    </div>
-
+    <script src="load-auth-modal.js"></script>
     <script src="auth.js"></script>
     <script src="app.js"></script>
 </body>

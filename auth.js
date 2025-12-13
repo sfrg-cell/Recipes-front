@@ -109,14 +109,11 @@ function refreshAccessToken() {
     .then(function(response) {
         if (!response.ok) {
             console.error('Token refresh failed with status:', response.status);
-            if (response.status === 401) {
-                console.error('Refresh token is invalid, clearing all tokens');
-                clearTokens();
-            } else {
-                console.error('Network or server error, keeping refresh token');
-                localStorage.removeItem('access_token');
-            }
+            clearTokens();
             refreshTokenPromise = null;
+            if (window.location.pathname !== '/index.html' && !window.location.pathname.endsWith('index.html')) {
+                window.location.href = 'index.html';
+            }
             throw new Error('Failed to refresh token');
         }
         return response.json();
@@ -135,7 +132,11 @@ function refreshAccessToken() {
     })
     .catch(function(error) {
         console.error('Error during token refresh:', error);
+        clearTokens();
         refreshTokenPromise = null;
+        if (window.location.pathname !== '/index.html' && !window.location.pathname.endsWith('index.html')) {
+            window.location.href = 'index.html';
+        }
         throw error;
     });
 
