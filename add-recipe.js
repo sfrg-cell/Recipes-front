@@ -1,5 +1,6 @@
 var API_URL = 'http://localhost:8000';
 var recipeIngredients = [];
+var editingRecipeId = null;
 
 function checkAuth() {
     var token = localStorage.getItem('access_token');
@@ -12,6 +13,14 @@ function checkAuth() {
     document.getElementById('loginPrompt').style.display = 'none';
     document.getElementById('addRecipeContent').style.display = 'block';
     loadFormData();
+
+    var urlParams = new URLSearchParams(window.location.search);
+    editingRecipeId = urlParams.get('edit');
+    if (editingRecipeId) {
+        loadRecipeForEditing(editingRecipeId);
+        document.querySelector('h1').textContent = 'Edit Recipe';
+        document.querySelector('button[type="submit"]').textContent = 'Update Recipe';
+    }
 }
 
 function loadFormData() {
@@ -20,6 +29,57 @@ function loadFormData() {
     loadComplexities();
     loadIngredients();
     loadUnits();
+}
+
+function loadRecipeForEditing(recipeId) {
+    console.log('Loading recipe for editing:', recipeId);
+    fetchWithAuth(API_URL + '/recipes/' + recipeId + '/')
+    .then(function(response) {
+        if (!response.ok) {
+            throw new Error('Failed to load recipe');
+        }
+        return response.json();
+    })
+    .then(function(recipe) {
+        console.log('Recipe loaded:', recipe);
+
+        document.getElementById('title').value = recipe.title || '';
+        document.getElementById('description').value = recipe.description || '';
+        document.getElementById('instructions').value = recipe.instructions || '';
+        document.getElementById('cookingTime').value = recipe.cooking_time || '';
+        document.getElementById('servings').value = recipe.servings || '';
+        document.getElementById('rating').value = recipe.rating || 0;
+
+        setTimeout(function() {
+            if (recipe.category) {
+                document.getElementById('category').value = recipe.category.id;
+            }
+            if (recipe.cuisine) {
+                document.getElementById('cuisine').value = recipe.cuisine.id;
+            }
+            if (recipe.complexity) {
+                document.getElementById('complexity').value = recipe.complexity.id;
+            }
+        }, 500);
+
+        if (recipe.ingredients && recipe.ingredients.length > 0) {
+            recipeIngredients = recipe.ingredients.map(function(ing) {
+                return {
+                    ingredient_id: ing.ingredient.id,
+                    ingredient_name: ing.ingredient.name,
+                    quantity: parseFloat(ing.quantity),
+                    unit_id: ing.unit ? ing.unit.id : null,
+                    unit_name: ing.unit ? ing.unit.name : ''
+                };
+            });
+            updateIngredientsList();
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading recipe:', error);
+        alert('Failed to load recipe for editing');
+        window.location.href = 'profile.html';
+    });
 }
 
 function loadCategories() {
@@ -212,46 +272,82 @@ function submitRecipe(event) {
     if (cuisineId) recipeData.cuisine_id = parseInt(cuisineId);
     if (complexityId) recipeData.complexity_id = parseInt(complexityId);
 
-    fetchWithAuth(API_URL + '/auth/user/')
-    .then(function(response) {
-        return response.json();
-    })
-    .then(function(user) {
-        recipeData.author = user.id;
+    if (editingRecipeId) {
+        fetchWithAuth(API_URL + '/auth/user/')
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(user) {
+            recipeData.author = user.id;
 
-        return fetchWithAuth(API_URL + '/recipes/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(recipeData)
-        });
-    })
-    .then(function(response) {
-        if (!response.ok) {
-            return response.json().then(function(err) {
-                throw new Error(JSON.stringify(err));
+            return fetchWithAuth(API_URL + '/recipes/' + editingRecipeId + '/', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(recipeData)
             });
-        }
-        return response.json();
-    })
-    .then(function(recipe) {
-        console.log('Recipe created:', recipe);
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.json().then(function(err) {
+                    throw new Error(err.error || JSON.stringify(err));
+                });
+            }
+            return response.json();
+        })
+        .then(function(recipe) {
+            console.log('Recipe updated:', recipe);
+            alert('Recipe updated successfully!');
+            window.location.href = 'profile.html';
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            errorDiv.textContent = 'Error updating recipe: ' + error.message;
+            errorDiv.style.display = 'block';
+        });
+    } else {
+        fetchWithAuth(API_URL + '/auth/user/')
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(user) {
+            recipeData.author = user.id;
 
-        if (recipeIngredients.length > 0) {
-            return addIngredientsToRecipe(recipe.id);
-        }
-        return recipe;
-    })
-    .then(function() {
-        alert('Recipe created successfully!');
-        window.location.href = 'index.html';
-    })
-    .catch(function(error) {
-        console.error('Error:', error);
-        errorDiv.textContent = 'Error creating recipe: ' + error.message;
-        errorDiv.style.display = 'block';
-    });
+            return fetchWithAuth(API_URL + '/recipes/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(recipeData)
+            });
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.json().then(function(err) {
+                    throw new Error(JSON.stringify(err));
+                });
+            }
+            return response.json();
+        })
+        .then(function(recipe) {
+            console.log('Recipe created:', recipe);
+
+            if (recipeIngredients.length > 0) {
+                return addIngredientsToRecipe(recipe.id);
+            }
+            return recipe;
+        })
+        .then(function() {
+            alert('Recipe created successfully!');
+            window.location.href = 'profile.html';
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            errorDiv.textContent = 'Error creating recipe: ' + error.message;
+            errorDiv.style.display = 'block';
+        });
+    }
 }
 
 function addIngredientsToRecipe(recipeId) {

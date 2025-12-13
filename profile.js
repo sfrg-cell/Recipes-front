@@ -22,8 +22,105 @@ function checkAuth() {
     console.log('Tokens found, loading profile data...');
     document.getElementById('loginPrompt').style.display = 'none';
     document.getElementById('profileContent').style.display = 'block';
+    loadUserRecipes();
     loadFavorites();
     loadProducts();
+}
+
+function loadUserRecipes() {
+    console.log('Loading user recipes...');
+    document.getElementById('recipesLoading').style.display = 'block';
+    document.getElementById('recipesGrid').innerHTML = '';
+    document.getElementById('recipesEmpty').style.display = 'none';
+
+    fetchWithAuth(API_URL + '/user-recipes/')
+    .then(function(response) {
+        console.log('User recipes response status:', response.status);
+        if (!response.ok) {
+            throw new Error('Failed to load recipes');
+        }
+        return response.json();
+    })
+    .then(function(recipes) {
+        console.log('User recipes loaded:', recipes.length);
+        document.getElementById('recipesLoading').style.display = 'none';
+        document.getElementById('recipesCount').textContent = recipes.length;
+
+        if (recipes.length === 0) {
+            document.getElementById('recipesEmpty').style.display = 'block';
+            return;
+        }
+
+        var grid = document.getElementById('recipesGrid');
+        for (var i = 0; i < recipes.length; i++) {
+            var card = createUserRecipeCard(recipes[i]);
+            grid.appendChild(card);
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading user recipes:', error);
+        document.getElementById('recipesLoading').style.display = 'none';
+        if (getRefreshToken()) {
+            document.getElementById('recipesEmpty').style.display = 'block';
+        }
+    });
+}
+
+function createUserRecipeCard(recipe) {
+    var card = document.createElement('div');
+    card.className = 'recipe-card';
+
+    var imageHTML = '<div class="recipe-card-image">🍽️</div>';
+    if (recipe.image) {
+        imageHTML = '<img src="' + recipe.image + '" alt="' + recipe.title + '" class="recipe-card-image">';
+    }
+
+    card.innerHTML = imageHTML +
+        '<div class="recipe-card-content">' +
+        '<h3 class="recipe-card-title">' + recipe.title + '</h3>' +
+        '<p class="recipe-card-description">' + (recipe.description || '') + '</p>' +
+        '<div class="recipe-card-meta">' +
+        '<div>⏱️ ' + (recipe.cooking_time || 'N/A') + ' min</div>' +
+        '<div>⭐ ' + (recipe.rating || 0).toFixed(1) + '</div>' +
+        '</div>' +
+        '<div style="margin-top:1rem; display:flex; gap:0.5rem;">' +
+        '<button class="btn btn-secondary" style="flex:1;" onclick="viewRecipe(' + recipe.id + ')">View</button>' +
+        '<button class="btn btn-primary" style="flex:1;" onclick="editRecipe(' + recipe.id + ')">Edit</button>' +
+        '<button class="btn btn-danger" onclick="deleteRecipe(' + recipe.id + ')">Delete</button>' +
+        '</div>' +
+        '</div>';
+
+    return card;
+}
+
+function editRecipe(recipeId) {
+    window.location.href = 'add-recipe.html?edit=' + recipeId;
+}
+
+function deleteRecipe(recipeId) {
+    if (!confirm('Are you sure you want to delete this recipe? This action cannot be undone.')) {
+        return;
+    }
+
+    console.log('Deleting recipe:', recipeId);
+    fetchWithAuth(API_URL + '/recipes/' + recipeId + '/', {
+        method: 'DELETE'
+    })
+    .then(function(response) {
+        console.log('Delete recipe response status:', response.status);
+        if (response.ok || response.status === 204) {
+            console.log('Recipe deleted successfully');
+            loadUserRecipes();
+        } else {
+            return response.json().then(function(err) {
+                throw new Error(err.error || 'Failed to delete recipe');
+            });
+        }
+    })
+    .catch(function(error) {
+        console.error('Error deleting recipe:', error);
+        alert('Error deleting recipe: ' + error.message);
+    });
 }
 
 function loadFavorites() {
@@ -205,18 +302,24 @@ function deleteProduct(productId) {
 
 function switchTab(tabName) {
     var tabButtons = document.querySelectorAll('.tab-button');
+    var tabs = document.querySelectorAll('.tab-content');
+
     for (var i = 0; i < tabButtons.length; i++) {
         tabButtons[i].classList.remove('active');
     }
+    for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove('active');
+    }
 
-    if (tabName === 'favorites') {
-        document.getElementById('favoritesTab').classList.add('active');
-        document.getElementById('productsTab').classList.remove('active');
+    if (tabName === 'recipes') {
+        document.getElementById('recipesTab').classList.add('active');
         tabButtons[0].classList.add('active');
-    } else {
-        document.getElementById('favoritesTab').classList.remove('active');
-        document.getElementById('productsTab').classList.add('active');
+    } else if (tabName === 'favorites') {
+        document.getElementById('favoritesTab').classList.add('active');
         tabButtons[1].classList.add('active');
+    } else if (tabName === 'products') {
+        document.getElementById('productsTab').classList.add('active');
+        tabButtons[2].classList.add('active');
     }
 }
 

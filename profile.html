@@ -41,7 +41,10 @@
             <h1 class="section-title">My Profile</h1>
 
             <div class="profile-tabs">
-                <button class="tab-button active" onclick="switchTab('favorites')">
+                <button class="tab-button active" onclick="switchTab('recipes')">
+                    📝 My Recipes (<span id="recipesCount">0</span>)
+                </button>
+                <button class="tab-button" onclick="switchTab('favorites')">
                     ❤️ My Favorites (<span id="favoritesCount">0</span>)
                 </button>
                 <button class="tab-button" onclick="switchTab('products')">
@@ -49,7 +52,23 @@
                 </button>
             </div>
 
-            <div id="favoritesTab" class="tab-content active">
+            <div id="recipesTab" class="tab-content active">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2 class="section-title" style="margin: 0;">My Recipes</h2>
+                    <a href="add-recipe.html" class="btn btn-primary">+ Create New Recipe</a>
+                </div>
+                <div class="loading" id="recipesLoading">
+                    <div class="spinner"></div>
+                    <p>Loading your recipes...</p>
+                </div>
+                <div class="recipes-grid" id="recipesGrid"></div>
+                <div class="empty-state" id="recipesEmpty" style="display: none;">
+                    <p>😔 You haven't created any recipes yet</p>
+                    <a href="add-recipe.html" class="btn btn-primary">Create Your First Recipe</a>
+                </div>
+            </div>
+
+            <div id="favoritesTab" class="tab-content">
                 <h2 class="section-title">Favorite Recipes</h2>
                 <div class="loading" id="favoritesLoading">
                     <div class="spinner"></div>
