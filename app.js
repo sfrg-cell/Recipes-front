@@ -367,6 +367,175 @@ function searchRecipes() {
     }, 500);
 }
 
+var generatedRecipeData = null;
+
+function showAiPromptModal() {
+    document.getElementById('aiPromptModal').style.display = 'flex';
+    document.getElementById('aiPromptInput').value = '';
+    document.getElementById('aiLoadingSpinner').style.display = 'none';
+    document.getElementById('generateRecipeBtn').style.display = 'block';
+}
+
+function closeAiPromptModal() {
+    document.getElementById('aiPromptModal').style.display = 'none';
+}
+
+function closeAiRecipeModal() {
+    document.getElementById('aiRecipeModal').style.display = 'none';
+    generatedRecipeData = null;
+}
+
+function generateRecipeWithAI() {
+    var prompt = document.getElementById('aiPromptInput').value.trim();
+
+    if (!prompt) {
+        alert('Please enter a recipe description');
+        return;
+    }
+
+    var token = localStorage.getItem('access_token');
+    if (!token) {
+        alert('Please login to use AI recipe generation');
+        return;
+    }
+
+    document.getElementById('generateRecipeBtn').style.display = 'none';
+    document.getElementById('aiLoadingSpinner').style.display = 'block';
+
+    fetch(API_URL + '/recipes/generate/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ prompt: prompt })
+    })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.json().then(function(data) {
+                    throw new Error(data.error || 'Failed to generate recipe');
+                });
+            }
+            return response.json();
+        })
+        .then(function(recipe) {
+            generatedRecipeData = recipe;
+            displayAiRecipe(recipe);
+            closeAiPromptModal();
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('Error generating recipe: ' + error.message);
+            document.getElementById('generateRecipeBtn').style.display = 'block';
+            document.getElementById('aiLoadingSpinner').style.display = 'none';
+        });
+}
+
+function displayAiRecipe(recipe) {
+    document.getElementById('aiRecipeTitle').textContent = recipe.title || 'Untitled Recipe';
+    document.getElementById('aiRecipeDescription').textContent = recipe.description || 'No description available';
+    document.getElementById('aiRecipeTime').textContent = recipe.cooking_time || 'N/A';
+    document.getElementById('aiRecipeServings').textContent = recipe.servings || 'N/A';
+    document.getElementById('aiRecipeComplexity').textContent = recipe.complexity || 'N/A';
+    document.getElementById('aiRecipeCuisine').textContent = recipe.cuisine || 'N/A';
+    document.getElementById('aiRecipeCategory').textContent = recipe.category || 'N/A';
+
+    var ingredientsList = document.getElementById('aiRecipeIngredients');
+    ingredientsList.innerHTML = '';
+    if (recipe.ingredients && recipe.ingredients.length > 0) {
+        for (var i = 0; i < recipe.ingredients.length; i++) {
+            var ingredient = recipe.ingredients[i];
+            var li = document.createElement('li');
+            li.className = 'ingredient-item';
+            li.style.cssText = 'padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-light); border-radius: 6px; display: flex; align-items: center;';
+
+            var checkmark = document.createElement('span');
+            checkmark.textContent = '✓';
+            checkmark.style.cssText = 'color: var(--secondary-color); font-weight: bold; margin-right: 0.75rem; font-size: 1.25rem;';
+
+            var text = document.createElement('span');
+            text.textContent = ingredient.name + ' - ' + ingredient.quantity + ' ' + ingredient.unit;
+
+            li.appendChild(checkmark);
+            li.appendChild(text);
+            ingredientsList.appendChild(li);
+        }
+    } else {
+        var li = document.createElement('li');
+        li.textContent = 'No ingredients available';
+        ingredientsList.appendChild(li);
+    }
+
+    document.getElementById('aiRecipeInstructions').textContent = recipe.instructions || 'No instructions available';
+
+    document.getElementById('aiRecipeModal').style.display = 'flex';
+}
+
+function saveAiRecipe() {
+    if (!generatedRecipeData) {
+        alert('No recipe data to save');
+        return;
+    }
+
+    var token = localStorage.getItem('access_token');
+    if (!token) {
+        alert('Please login to save recipes');
+        return;
+    }
+
+    fetch(API_URL + '/auth/user/', {
+        headers: {
+            'Authorization': 'Bearer ' + token
+        }
+    })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Failed to get user info');
+            }
+            return response.json();
+        })
+        .then(function(user) {
+            var recipePayload = {
+                title: generatedRecipeData.title,
+                description: generatedRecipeData.description,
+                cooking_time: generatedRecipeData.cooking_time,
+                servings: generatedRecipeData.servings,
+                complexity: generatedRecipeData.complexity,
+                cuisine: generatedRecipeData.cuisine,
+                category: generatedRecipeData.category,
+                ingredients: generatedRecipeData.ingredients,
+                instructions: generatedRecipeData.instructions,
+                author: user.id
+            };
+
+            return fetch(API_URL + '/recipes/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify(recipePayload)
+            });
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.json().then(function(data) {
+                    throw new Error(data.error || data.detail || 'Failed to save recipe');
+                });
+            }
+            return response.json();
+        })
+        .then(function(savedRecipe) {
+            alert('Recipe saved successfully!');
+            closeAiRecipeModal();
+            loadRecipes();
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('Error saving recipe: ' + error.message);
+        });
+}
+
 window.onload = function() {
     console.log('App initializing...');
 
@@ -443,6 +612,33 @@ window.onload = function() {
 
     document.getElementById('prevPage').onclick = previousPage;
     document.getElementById('nextPage').onclick = nextPage;
+
+    document.getElementById('aiGenerateBtn').onclick = showAiPromptModal;
+    document.getElementById('closeAiPromptModal').onclick = closeAiPromptModal;
+    document.getElementById('aiPromptModal').onclick = function(e) {
+        if (e.target.id === 'aiPromptModal') {
+            closeAiPromptModal();
+        }
+    };
+
+    document.getElementById('aiPromptForm').onsubmit = function(e) {
+        e.preventDefault();
+        generateRecipeWithAI();
+    };
+
+    document.getElementById('closeAiRecipeModal').onclick = closeAiRecipeModal;
+    document.getElementById('aiRecipeModal').onclick = function(e) {
+        if (e.target.id === 'aiRecipeModal') {
+            closeAiRecipeModal();
+        }
+    };
+
+    document.getElementById('aiRecipeJustViewBtn').onclick = function() {
+        closeAiRecipeModal();
+        alert('Okey');
+    };
+
+    document.getElementById('aiRecipeSaveBtn').onclick = saveAiRecipe;
 
     console.log('App initialized!');
 };

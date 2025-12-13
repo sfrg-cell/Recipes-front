@@ -36,9 +36,14 @@
             <div class="hero-content">
                 <h2 class="hero-title">Don't know what to cook?</h2>
                 <p class="hero-subtitle">Click the button and get a random recipe!</p>
-                <button class="btn btn-large btn-random" id="randomRecipeBtn">
-                    🎲 What to cook today?
-                </button>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-large btn-random" id="randomRecipeBtn">
+                        🎲 What to cook today?
+                    </button>
+                    <button class="btn btn-large btn-random" id="aiGenerateBtn">
+                        ✨ Generate Recipe with AI
+                    </button>
+                </div>
             </div>
         </div>
     </section>
@@ -95,6 +100,92 @@
                     🎲 Find my recipe!
                 </button>
             </form>
+        </div>
+    </div>
+
+    <div class="modal" id="aiPromptModal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="close-btn" id="closeAiPromptModal">&times;</button>
+            <h2 style="margin-bottom: 1.5rem;">AI Recipe Generator</h2>
+            <form id="aiPromptForm">
+                <div class="form-group">
+                    <label for="aiPromptInput">Describe what recipe you want:</label>
+                    <textarea
+                        id="aiPromptInput"
+                        class="filter-input"
+                        placeholder="Describe what recipe you want (e.g., 'chocolate cake with strawberries')"
+                        rows="5"
+                        required
+                        style="width: 100%; resize: vertical; min-height: 120px;"
+                    ></textarea>
+                </div>
+                <button type="submit" class="btn btn-large btn-primary" id="generateRecipeBtn" style="width: 100%;">
+                    ✨ Generate Recipe
+                </button>
+                <div id="aiLoadingSpinner" style="display: none; text-align: center; margin-top: 1rem;">
+                    <div class="spinner" style="margin: 0 auto 1rem;"></div>
+                    <p>Generating your recipe with AI...</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="aiRecipeModal" style="display: none;">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <button class="close-btn" id="closeAiRecipeModal">&times;</button>
+            <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);" id="aiRecipeTitle">Recipe Title</h2>
+
+            <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <p id="aiRecipeDescription" style="font-size: 1rem; color: var(--text-dark);"></p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 0.875rem; color: var(--text-light);">Cooking Time</div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: var(--text-dark);">
+                        <span id="aiRecipeTime">30</span> min
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.875rem; color: var(--text-light);">Servings</div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: var(--text-dark);" id="aiRecipeServings">4</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.875rem; color: var(--text-light);">Complexity</div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: var(--text-dark);" id="aiRecipeComplexity">Easy</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.875rem; color: var(--text-light);">Cuisine</div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: var(--text-dark);" id="aiRecipeCuisine">Italian</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.875rem; color: var(--text-light);">Category</div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: var(--text-dark);" id="aiRecipeCategory">Main Course</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.5rem; color: var(--text-dark); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--primary-color);">
+                    Ingredients
+                </h3>
+                <ul id="aiRecipeIngredients" style="list-style: none; padding: 0;"></ul>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.5rem; color: var(--text-dark); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--primary-color);">
+                    Instructions
+                </h3>
+                <div id="aiRecipeInstructions" style="background: var(--bg-light); padding: 1.5rem; border-radius: 8px; line-height: 1.8; white-space: pre-line;"></div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <button class="btn btn-secondary btn-large" id="aiRecipeJustViewBtn">
+                    👁️ Just View
+                </button>
+                <button class="btn btn-primary btn-large" id="aiRecipeSaveBtn">
+                    💾 Save to My Recipes
+                </button>
+            </div>
         </div>
     </div>
 

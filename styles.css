@@ -559,6 +559,16 @@ img.recipe-card-image {
         min-width: 100%;
         max-width: 100%;
     }
+
+    .hero-content > div {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .hero-content > div button {
+        width: 100%;
+        max-width: 300px;
+    }
 }
 
 .recipe-details {
