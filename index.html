@@ -43,6 +43,61 @@
         </div>
     </section>
 
+    <div class="modal" id="randomChoiceModal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="close-btn" id="closeChoiceModal">&times;</button>
+            <h2 style="margin-bottom: 1.5rem;">Choose an option</h2>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <button class="btn btn-large btn-primary" id="simpleRandomBtn">
+                    🎲 Get a completely random recipe
+                </button>
+                <button class="btn btn-large btn-secondary" id="showFiltersBtn">
+                    🎯 Random recipe with my filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="filtersModal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="close-btn" id="closeFiltersModal">&times;</button>
+            <h2 style="margin-bottom: 1.5rem;">Set your preferences</h2>
+            <form id="randomFiltersForm">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="filter-group">
+                        <label for="modalCategoryFilter">Category:</label>
+                        <select id="modalCategoryFilter" class="filter-select">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="modalCuisineFilter">Cuisine:</label>
+                        <select id="modalCuisineFilter" class="filter-select">
+                            <option value="">All Cuisines</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="modalComplexityFilter">Complexity:</label>
+                        <select id="modalComplexityFilter" class="filter-select">
+                            <option value="">All Levels</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="modalMaxTimeFilter">Max time (minutes):</label>
+                        <input type="number" id="modalMaxTimeFilter" class="filter-input" placeholder="e.g. 60" min="1">
+                    </div>
+                    <div class="filter-group">
+                        <label for="modalServingsFilter">Servings:</label>
+                        <input type="number" id="modalServingsFilter" class="filter-input" placeholder="e.g. 4" min="1">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-large btn-primary" style="width: 100%;">
+                    🎲 Find my recipe!
+                </button>
+            </form>
+        </div>
+    </div>
+
     <section class="random-recipe-section" id="randomRecipeDisplay" style="display: none;">
         <div class="container">
             <div class="random-recipe-card">
@@ -52,6 +107,7 @@
                     <div class="random-recipe-info">
                         <h3 id="randomRecipeTitle">Recipe Title</h3>
                         <p id="randomRecipeDescription">Recipe Description</p>
+                        <p id="randomRecipeFilterInfo" style="display: none; font-size: 0.9rem; color: #666; margin-top: 0.5rem;"></p>
                         <div class="random-recipe-meta">
                             <span class="meta-item">⏱️ <span id="randomRecipeTime">30</span> min</span>
                             <span class="meta-item">⭐ <span id="randomRecipeRating">4.5</span></span>

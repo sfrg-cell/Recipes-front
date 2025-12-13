@@ -114,30 +114,155 @@ function loadRandomRecipe() {
             return response.json();
         })
         .then(function(recipe) {
-            document.getElementById('randomRecipeTitle').textContent = recipe.title;
-            document.getElementById('randomRecipeDescription').textContent = recipe.description || 'Description not available';
-            document.getElementById('randomRecipeTime').textContent = recipe.cooking_time || 'N/A';
-            document.getElementById('randomRecipeRating').textContent = recipe.rating ? recipe.rating.toFixed(1) : '0.0';
-            document.getElementById('randomRecipeCategory').textContent = recipe.category ? recipe.category.name : 'N/A';
-
-            var imageElement = document.getElementById('randomRecipeImage');
-            if (recipe.image) {
-                imageElement.src = recipe.image;
-                imageElement.style.display = 'block';
-            } else {
-                imageElement.style.display = 'none';
-            }
-
-            document.getElementById('viewRandomRecipeBtn').onclick = function() {
-                window.location.href = 'recipe-details.html?id=' + recipe.id;
-            };
-
-            document.getElementById('randomRecipeDisplay').style.display = 'flex';
+            displayRandomRecipe(recipe);
         })
         .catch(function(error) {
             console.error('Error:', error);
             alert('Failed to load recipe');
         });
+}
+
+function loadRandomRecipeWithFilters(formFilters) {
+    var url = API_URL + '/recipes/random-with-wishes/?';
+    var params = [];
+
+    if (formFilters.category) params.push('category=' + formFilters.category);
+    if (formFilters.cuisine) params.push('cuisine=' + formFilters.cuisine);
+    if (formFilters.complexity) params.push('complexity=' + formFilters.complexity);
+    if (formFilters.maxTime) params.push('max_time=' + formFilters.maxTime);
+    if (formFilters.servings) params.push('servings=' + formFilters.servings);
+
+    url += params.join('&');
+
+    console.log('Fetching random recipe with filters from:', url);
+
+    fetch(url)
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.error) {
+                alert(data.error + '\nTry adjusting your filters.');
+                return;
+            }
+
+            closeFiltersModal();
+            closeRandomChoiceModal();
+            displayRandomRecipe(data.recipe, data.filters_info);
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('Failed to load recipe with filters');
+        });
+}
+
+function showRandomChoiceModal() {
+    document.getElementById('randomChoiceModal').style.display = 'flex';
+}
+
+function closeRandomChoiceModal() {
+    document.getElementById('randomChoiceModal').style.display = 'none';
+}
+
+function showFiltersModal() {
+    closeRandomChoiceModal();
+    document.getElementById('filtersModal').style.display = 'flex';
+}
+
+function closeFiltersModal() {
+    document.getElementById('filtersModal').style.display = 'none';
+}
+
+function loadModalFilters() {
+    fetch(API_URL + '/categories/')
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(categories) {
+            var select = document.getElementById('modalCategoryFilter');
+            select.innerHTML = '<option value="">All Categories</option>';
+            for (var i = 0; i < categories.length; i++) {
+                var option = document.createElement('option');
+                option.value = categories[i].id;
+                option.textContent = categories[i].name;
+                select.appendChild(option);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error loading categories:', error);
+        });
+
+    fetch(API_URL + '/cuisines/')
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(cuisines) {
+            var select = document.getElementById('modalCuisineFilter');
+            select.innerHTML = '<option value="">All Cuisines</option>';
+            for (var i = 0; i < cuisines.length; i++) {
+                var option = document.createElement('option');
+                option.value = cuisines[i].id;
+                option.textContent = cuisines[i].name;
+                select.appendChild(option);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error loading cuisines:', error);
+        });
+
+    fetch(API_URL + '/complexities/')
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(complexities) {
+            var select = document.getElementById('modalComplexityFilter');
+            select.innerHTML = '<option value="">All Levels</option>';
+            for (var i = 0; i < complexities.length; i++) {
+                var option = document.createElement('option');
+                option.value = complexities[i].id;
+                option.textContent = complexities[i].name;
+                select.appendChild(option);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error loading complexities:', error);
+        });
+}
+
+function displayRandomRecipe(recipe, filtersInfo) {
+    document.getElementById('randomRecipeTitle').textContent = recipe.title;
+    document.getElementById('randomRecipeDescription').textContent = recipe.description || 'Description not available';
+    document.getElementById('randomRecipeTime').textContent = recipe.cooking_time || 'N/A';
+    document.getElementById('randomRecipeRating').textContent = recipe.rating ? recipe.rating.toFixed(1) : '0.0';
+    document.getElementById('randomRecipeCategory').textContent = recipe.category ? recipe.category.name : 'N/A';
+
+    var imageElement = document.getElementById('randomRecipeImage');
+    if (recipe.image) {
+        imageElement.src = recipe.image;
+        imageElement.style.display = 'block';
+    } else {
+        imageElement.style.display = 'none';
+    }
+
+    if (filtersInfo && filtersInfo.total_available) {
+        var infoText = 'Found from ' + filtersInfo.total_available + ' matching recipes';
+        var filterInfoElement = document.getElementById('randomRecipeFilterInfo');
+        if (filterInfoElement) {
+            filterInfoElement.textContent = infoText;
+            filterInfoElement.style.display = 'block';
+        }
+    } else {
+        var filterInfoElement = document.getElementById('randomRecipeFilterInfo');
+        if (filterInfoElement) {
+            filterInfoElement.style.display = 'none';
+        }
+    }
+
+    document.getElementById('viewRandomRecipeBtn').onclick = function() {
+        window.location.href = 'recipe-details.html?id=' + recipe.id;
+    };
+
+    document.getElementById('randomRecipeDisplay').style.display = 'flex';
 }
 
 function closeRandomRecipeDisplay() {
@@ -248,10 +373,46 @@ window.onload = function() {
     loadCategories();
     loadCuisines();
     loadComplexities();
+    loadModalFilters();
 
     loadRecipes();
 
-    document.getElementById('randomRecipeBtn').onclick = loadRandomRecipe;
+    document.getElementById('randomRecipeBtn').onclick = showRandomChoiceModal;
+
+    document.getElementById('simpleRandomBtn').onclick = function() {
+        closeRandomChoiceModal();
+        loadRandomRecipe();
+    };
+
+    document.getElementById('showFiltersBtn').onclick = showFiltersModal;
+
+    document.getElementById('closeChoiceModal').onclick = closeRandomChoiceModal;
+    document.getElementById('randomChoiceModal').onclick = function(e) {
+        if (e.target.id === 'randomChoiceModal') {
+            closeRandomChoiceModal();
+        }
+    };
+
+    document.getElementById('closeFiltersModal').onclick = closeFiltersModal;
+    document.getElementById('filtersModal').onclick = function(e) {
+        if (e.target.id === 'filtersModal') {
+            closeFiltersModal();
+        }
+    };
+
+    document.getElementById('randomFiltersForm').onsubmit = function(e) {
+        e.preventDefault();
+
+        var formFilters = {
+            category: document.getElementById('modalCategoryFilter').value,
+            cuisine: document.getElementById('modalCuisineFilter').value,
+            complexity: document.getElementById('modalComplexityFilter').value,
+            maxTime: document.getElementById('modalMaxTimeFilter').value,
+            servings: document.getElementById('modalServingsFilter').value
+        };
+
+        loadRandomRecipeWithFilters(formFilters);
+    };
 
     document.getElementById('closeRandomRecipe').onclick = closeRandomRecipeDisplay;
     document.getElementById('randomRecipeDisplay').onclick = function(e) {
