@@ -84,6 +84,53 @@
                     <h2 class="section-title">Instructions</h2>
                     <div class="instructions" id="instructions"></div>
                 </div>
+
+                <div class="recipe-section">
+                    <div style="text-align: center; margin-bottom: 1rem;">
+                        <button class="btn btn-primary" id="nutritionBtn" onclick="loadNutritionInfo()">
+                            Get Nutrition Info
+                        </button>
+                    </div>
+                    <div id="nutritionLoading" class="loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Analyzing nutrition...</p>
+                    </div>
+                    <div id="nutritionError" class="error" style="display: none;"></div>
+                    <div id="nutritionResults" style="display: none;">
+                        <h2 class="section-title">Nutrition Information</h2>
+                        <div class="nutrition-grid">
+                            <div class="nutrition-card">
+                                <div class="nutrition-icon">🔥</div>
+                                <div class="nutrition-label">Total Calories</div>
+                                <div class="nutrition-value" id="totalCalories">-</div>
+                            </div>
+                            <div class="nutrition-card">
+                                <div class="nutrition-icon">🍽</div>
+                                <div class="nutrition-label">Per Serving</div>
+                                <div class="nutrition-value" id="perServingCalories">-</div>
+                            </div>
+                            <div class="nutrition-card">
+                                <div class="nutrition-icon">🥩</div>
+                                <div class="nutrition-label">Protein</div>
+                                <div class="nutrition-value" id="proteinCalories">-</div>
+                            </div>
+                            <div class="nutrition-card">
+                                <div class="nutrition-icon">🧈</div>
+                                <div class="nutrition-label">Fat</div>
+                                <div class="nutrition-value" id="fatCalories">-</div>
+                            </div>
+                            <div class="nutrition-card">
+                                <div class="nutrition-icon">🍞</div>
+                                <div class="nutrition-label">Carbohydrates</div>
+                                <div class="nutrition-value" id="carbCalories">-</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1.5rem;">
+                            <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">Main Calorie Sources:</h3>
+                            <ul id="calorieSources" class="ingredients-list"></ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -262,6 +309,74 @@
                 console.error('Error:', error);
                 alert('Error');
             });
+        }
+
+        function loadNutritionInfo() {
+            if (!currentRecipeId) {
+                alert('No recipe ID available');
+                return;
+            }
+
+            document.getElementById('nutritionBtn').disabled = true;
+            document.getElementById('nutritionLoading').style.display = 'block';
+            document.getElementById('nutritionError').style.display = 'none';
+            document.getElementById('nutritionResults').style.display = 'none';
+
+            fetch(API_URL + '/recipes/' + currentRecipeId + '/nutrition/gemini/')
+                .then(function(response) {
+                    if (!response.ok) {
+                        return response.json().then(function(err) {
+                            throw new Error(err.error ||'Failed to load nutrition info');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    document.getElementById('nutritionLoading').style.display = 'none';
+                    document.getElementById('nutritionBtn').disabled = false;
+
+                    if (!data.success) {
+                        throw new Error(data.error ||'Failed to get nutrition info');
+                    }
+
+                    displayNutritionInfo(data);
+                })
+                .catch(function(error) {
+                    console.error('Error loading nutrition:', error);
+                    document.getElementById('nutritionLoading').style.display = 'none';
+                    document.getElementById('nutritionBtn').disabled = false;
+                    document.getElementById('nutritionError').textContent = 'Error: ' + error.message;
+                    document.getElementById('nutritionError').style.display = 'block';
+                });
+        }
+
+        function displayNutritionInfo(data) {
+            document.getElementById('totalCalories').textContent = data.total_calories + ' kcal';
+            document.getElementById('perServingCalories').textContent = data.calories_per_serving + ' kcal';
+
+            var breakdown = data.calorie_breakdown || {};
+            document.getElementById('proteinCalories').textContent = (breakdown.protein_calories || 0) + ' kcal';
+            document.getElementById('fatCalories').textContent = (breakdown.fat_calories || 0) + ' kcal';
+            document.getElementById('carbCalories').textContent = (breakdown.carb_calories || 0) + ' kcal';
+
+            var sourcesList = document.getElementById('calorieSources');
+            sourcesList.innerHTML = '';
+
+            if (data.main_calorie_sources && data.main_calorie_sources.length > 0) {
+                for (var i = 0; i < data.main_calorie_sources.length; i++) {
+                    var li = document.createElement('li');
+                    li.className = 'ingredient-item';
+                    li.textContent = data.main_calorie_sources[i];
+                    sourcesList.appendChild(li);
+                }
+            } else {
+                var li = document.createElement('li');
+                li.className = 'ingredient-item';
+                li.textContent = 'No specific sources identified';
+                sourcesList.appendChild(li);
+            }
+
+            document.getElementById('nutritionResults').style.display = 'block';
         }
 
         window.onload = function() {
